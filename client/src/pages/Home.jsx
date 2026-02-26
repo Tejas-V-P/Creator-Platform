@@ -1,12 +1,16 @@
 import { Link } from 'react-router-dom';
+import ConnectionTest from '../components/common/ConnectionTest';
 
 const Home = () => {
   return (
     <div style={containerStyle}>
       <div style={heroStyle}>
-        <h1 style={titleStyle}>{/* Platform Name/Tagline */}</h1>
+         <div style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem' }}>
+        <ConnectionTest />
+      </div>
+        <h1 style={titleStyle}>{"Stay fit"}</h1>
         <p style={subtitleStyle}>
-          {/* Brief description of what your platform does */}
+          {"Provides all needs and accessories for your physical strength"}
         </p>
         <div style={ctaStyle}>
           <Link to="/register" style={buttonStyle}>

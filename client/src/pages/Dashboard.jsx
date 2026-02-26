@@ -3,27 +3,33 @@ const Dashboard = () => {
     <div style={containerStyle}>
       <div style={headerStyle}>
         <h1>Dashboard</h1>
-        <p>Welcome back!</p>
+        <p>Welcome back! <span style={errorStyle}>User.exe</span></p>
       </div>
 
       <div style={contentStyle}>
         <div style={placeholderStyle}>
-          <h2>Your Dashboard</h2>
-          <p>This page will display:</p>
+          <h2>Dashboard</h2>
+          <p>Our Website Provides you with the best services of <span style={errorStyle} >("404 Word Not found")</span>
+          </p>
           <ul style={listStyle}>
-            <li>Your created content (posts/recipes/workouts)</li>
+            <li>Todays Posts...</li>
             <li>Statistics and analytics</li>
-            <li>Quick actions (create new, edit, delete)</li>
-            <li>Recent activity</li>
+            <li>Quick actions <button onClick={handleClick}>Create</button> <button onClick={handleClick}>Edit</button> <button onClick={handleClick}>Delete</button> </li>
+            <li>Recent activity <button>Show History</button></li>
           </ul>
           <p style={noteStyle}>
-            This will be built after authentication is implemented
+            App is UNDER CONSTRUCTION... <br></br>
+            Might fall into a pit of "404 Not found" is explored too much.
           </p>
         </div>
       </div>
     </div>
   );
 };
+
+const handleClick = () => {
+    alert("Button Doesnt Work 🙄")
+}
 
 const containerStyle = {
   minHeight: '80vh',
@@ -56,5 +62,14 @@ const noteStyle = {
   fontStyle: 'italic',
   color: '#666',
 };
+
+const errorStyle = {
+  marginTop: '1rem',
+  fontStyle: 'italic',
+  
+  color: 'red',
+};
+
+
 
 export default Dashboard;
