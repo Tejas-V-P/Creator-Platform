@@ -1,16 +1,70 @@
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
 const Dashboard = () => {
+
+  const [user, setUser] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Check if user is logged in
+    const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('user');
+
+    if (!token || !userData) {
+      // Not logged in - redirect to login
+      navigate('/login');
+      return;
+    }
+
+    try {
+      const parsedUser = JSON.parse(userData);
+      // Use a microtask to avoid synchronous setState in effect
+      Promise.resolve().then(() => setUser(parsedUser));
+    } catch (error) {
+      console.error('Error parsing user data:', error);
+      navigate('/login');
+    }
+  }, [navigate]);
+   const handleLogout = () => {
+    // Clear localStorage
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    
+    // Redirect to login
+    navigate('/login');
+  };
+
+  if (!user) {
+    return <div style={{ textAlign: 'center', padding: '2rem' }}>Loading...</div>;
+  }
+
+
   return (
     <div style={containerStyle}>
       <div style={headerStyle}>
         <h1>Dashboard</h1>
-        <p>Welcome back! <span style={errorStyle}>User.exe</span></p>
+        <p>Welcome back! {user.name}</p>
       </div>
 
       <div style={contentStyle}>
+        <div style={cardStyle}>
+          <h2>Your Account</h2>
+          <div style={infoStyle}>
+            <p><strong>Name:</strong> {user.name}</p>
+            <p><strong>Email:</strong> {user.email}</p>
+            <p><strong>Member Since:</strong> {new Date(user.createdAt).toLocaleDateString()}</p>
+          </div>
+        </div>
+
         <div style={placeholderStyle}>
           <h2>Dashboard</h2>
           <p>Our Website Provides you with the best services of <span style={errorStyle} >("404 Word Not found")</span>
           </p>
+          <button onClick={handleLogout} style={logoutButtonStyle}>
+          Logout
+        </button>
+        
           <ul style={listStyle}>
             <li>Todays Posts...</li>
             <li>Statistics and analytics</li>
@@ -68,6 +122,28 @@ const errorStyle = {
   fontStyle: 'italic',
   
   color: 'red',
+};
+
+const cardStyle = {
+  backgroundColor: '#fff',
+  padding: '2rem',
+  borderRadius: '8px',
+  marginBottom: '2rem',
+  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+};
+
+const infoStyle = {
+  marginTop: '1rem',
+};
+
+const logoutButtonStyle = {
+  backgroundColor: '#dc3545',
+  color: 'white',
+  padding: '0.5rem 1rem',
+  border: 'none',
+  borderRadius: '4px',
+  cursor: 'pointer',
+  marginTop: '1rem',
 };
 
 
