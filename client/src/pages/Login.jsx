@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../context/authContext';
 
 const Login = () => {
+  const { login } = useAuth();
   // Form field state
   const [formData, setFormData] = useState({
     email: '',
@@ -12,8 +14,6 @@ const Login = () => {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState('');
-
-  const navigate = useNavigate();
 
   // Step 8: Create Input Handler
   const handleChange = (e) => {
@@ -80,14 +80,8 @@ const Login = () => {
       const data = await response.json();
 
       if (response.ok) {
-        // 1. Store token in localStorage
-        localStorage.setItem('token', data.token);
-        
-        // 2. Store user data stringified
-        localStorage.setItem('user', JSON.stringify(data.user));
-
-        // 3. Redirect to dashboard
-        navigate('/dashboard');
+        // Use the login function from context
+        login(data.user, data.token);
       } else {
         setApiError(data.message || 'Login failed. Please try again.');
       }

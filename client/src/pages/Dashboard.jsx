@@ -1,44 +1,29 @@
-import { useEffect, useState } from 'react';
+import { useAuth } from '../context/authContext';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
-
-  const [user, setUser] = useState(null);
+  const { user, logout, loading } = useAuth();
   const navigate = useNavigate();
 
+  // Redirect to login if not authenticated
   useEffect(() => {
-    // Check if user is logged in
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
-
-    if (!token || !userData) {
-      // Not logged in - redirect to login
-      navigate('/login');
-      return;
-    }
-
-    try {
-      const parsedUser = JSON.parse(userData);
-      // Use a microtask to avoid synchronous setState in effect
-      Promise.resolve().then(() => setUser(parsedUser));
-    } catch (error) {
-      console.error('Error parsing user data:', error);
+    if (!loading && !user) {
       navigate('/login');
     }
-  }, [navigate]);
-   const handleLogout = () => {
-    // Clear localStorage
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    
-    // Redirect to login
-    navigate('/login');
-  };
+  }, [loading, user, navigate]);
 
-  if (!user) {
-    return <div style={{ textAlign: 'center', padding: '2rem' }}>Loading...</div>;
+  if (loading) {
+    return <div style={{ textAlign: 'center', padding: '2rem' }}>Loading Auth...</div>;
   }
 
+  if (!user) {
+    return null; // Will redirect via useEffect
+  }
+
+  const handleClick = () => {
+    alert("Button Doesnt Work 🙄");
+  };
 
   return (
     <div style={containerStyle}>
@@ -53,27 +38,34 @@ const Dashboard = () => {
           <div style={infoStyle}>
             <p><strong>Name:</strong> {user.name}</p>
             <p><strong>Email:</strong> {user.email}</p>
-            <p><strong>Member Since:</strong> {new Date(user.createdAt).toLocaleDateString()}</p>
+            {/* Added optional chaining for safety */}
+            <p><strong>Member Since:</strong> {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Recent'}</p>
           </div>
         </div>
 
         <div style={placeholderStyle}>
           <h2>Dashboard</h2>
-          <p>Our Website Provides you with the best services of <span style={errorStyle} >("404 Word Not found")</span>
-          </p>
-          <button onClick={handleLogout} style={logoutButtonStyle}>
-          Logout
-        </button>
+          <p>Our Website Provides you with the best services of <span style={errorStyle}>("404 Word Not found")</span></p>
+          
+          {/* 4. Use the logout function from Context */}
+          <button onClick={logout} style={logoutButtonStyle}>
+            Logout
+          </button>
         
           <ul style={listStyle}>
             <li>Todays Posts...</li>
             <li>Statistics and analytics</li>
-            <li>Quick actions <button onClick={handleClick}>Create</button> <button onClick={handleClick}>Edit</button> <button onClick={handleClick}>Delete</button> </li>
-            <li>Recent activity <button>Show History</button></li>
+            <li>
+              Quick actions 
+              <button onClick={handleClick} style={actionButtonStyle}>Create</button> 
+              <button onClick={handleClick} style={actionButtonStyle}>Edit</button> 
+              <button onClick={handleClick} style={actionButtonStyle}>Delete</button> 
+            </li>
+            <li>Recent activity <button style={actionButtonStyle}>Show History</button></li>
           </ul>
           <p style={noteStyle}>
-            App is UNDER CONSTRUCTION... <br></br>
-            Might fall into a pit of "404 Not found" is explored too much.
+            App is UNDER CONSTRUCTION... <br />
+            Might fall into a pit of "404 Not found" if explored too much.
           </p>
         </div>
       </div>
@@ -81,9 +73,12 @@ const Dashboard = () => {
   );
 };
 
-const handleClick = () => {
-    alert("Button Doesnt Work 🙄")
-}
+// --- Styles (Kept exactly as yours, added one for buttons) ---
+
+const actionButtonStyle = {
+  marginLeft: '5px',
+  cursor: 'pointer'
+};
 
 const containerStyle = {
   minHeight: '80vh',
@@ -120,7 +115,6 @@ const noteStyle = {
 const errorStyle = {
   marginTop: '1rem',
   fontStyle: 'italic',
-  
   color: 'red',
 };
 
@@ -145,7 +139,5 @@ const logoutButtonStyle = {
   cursor: 'pointer',
   marginTop: '1rem',
 };
-
-
 
 export default Dashboard;
