@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "scripts": {    
+  "scripts": {
     "client": "npm run dev --prefix client",
     "server": "npm run dev --prefix server",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
@@ -15,5 +15,8 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs"
+  "type": "commonjs",
+  "dependencies": {
+    "axios": "^1.13.6"
+  }
 }
