@@ -6,33 +6,68 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 
-// 1. Import the AuthProvider
+// 1. Ensure consistent naming (PublicRoute usually capitalized)
+import ProtectedRoute from './components/common/ProtectedRoute';
+import PublicRoute from './components/common/publicRoute'; 
+
 import { AuthProvider } from './context/authContext';
 
 function App() {
   return (
     <BrowserRouter>
-      {/* 2. Wrap everything inside AuthProvider so all components can access auth state */}
       <AuthProvider>
         <div style={appStyle}>
-          {/* Header appears on all pages and can now use useAuth() */}
           <Header />
 
-          {/* Main content area */}
           <main style={mainStyle}>
             <Routes>
-              {/* Define your routes here */}
+              {/* PUBLIC ROUTES: Accessible to everyone */}
               <Route path="/" element={<Home />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/dashboard" element={<Dashboard />} />
+
+              {/* AUTH ROUTES: Only for users who are NOT logged in */}
+              <Route 
+                path="/login" 
+                element={
+                  <PublicRoute>
+                    <Login />
+                  </PublicRoute>
+                } 
+              />
+              <Route 
+                path="/register" 
+                element={
+                  <PublicRoute>
+                    <Register />
+                  </PublicRoute>
+                } 
+              />
+
+              {/* PROTECTED ROUTES: Only for logged-in users */}
+              <Route 
+                path="/dashboard" 
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                } 
+              />
               
-              {/* 404 Page - catches all unmatched routes */}
+              {/* Example of adding more protected routes easily:
+              <Route 
+                path="/profile" 
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                } 
+              /> 
+              */}
+              
+              {/* 404 Page */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
 
-          {/* Footer appears on all pages */}
           <Footer />
         </div>
       </AuthProvider>
@@ -40,7 +75,6 @@ function App() {
   );
 }
 
-// Simple 404 component
 const NotFound = () => {
   return (
     <div style={{ textAlign: 'center', padding: '4rem' }}>
@@ -50,6 +84,7 @@ const NotFound = () => {
   );
 };
 
+// Styles kept consistent
 const appStyle = {
   display: 'flex',
   flexDirection: 'column',

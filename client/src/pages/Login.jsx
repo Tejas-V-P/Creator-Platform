@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const Login = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const { login } = useAuth();
   // Form field state
   const [formData, setFormData] = useState({
@@ -82,6 +85,10 @@ const Login = () => {
       if (response.ok) {
         // Use the login function from context
         login(data.user, data.token);
+        
+        // Redirect to intended page or dashboard
+        const from = location.state?.from?.pathname || '/dashboard';
+        navigate(from, { replace: true });
       } else {
         setApiError(data.message || 'Login failed. Please try again.');
       }
