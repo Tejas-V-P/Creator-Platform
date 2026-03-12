@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 
 const Login = () => {
   const location = useLocation();
@@ -83,6 +84,7 @@ const Login = () => {
       const data = await response.json();
 
       if (response.ok) {
+        toast.success('🎉 Login successful! Welcome back!');
         // Use the login function from context
         login(data.user, data.token);
         
@@ -90,11 +92,15 @@ const Login = () => {
         const from = location.state?.from?.pathname || '/dashboard';
         navigate(from, { replace: true });
       } else {
-        setApiError(data.message || 'Login failed. Please try again.');
+        const errorMsg = data.message || 'Login failed. Please try again.';
+        toast.error(errorMsg);
+        setApiError(errorMsg);
       }
     } catch (error) {
       console.error('Login error:', error);
-      setApiError('Unable to connect to server. Please try again.');
+      const errorMsg = 'Unable to connect to server. Please try again.';
+      toast.error(errorMsg);
+      setApiError(errorMsg);
     } finally {
       setIsLoading(false);
     }

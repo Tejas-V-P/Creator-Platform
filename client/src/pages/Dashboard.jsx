@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
+import { toast } from 'react-toastify';
 import api from '../services/api';
 
 const Dashboard = () => {
@@ -25,7 +26,9 @@ const Dashboard = () => {
       setPosts(response.data.data);
       setPagination(response.data.pagination);
     } catch (err) {
-      setError('Failed to load posts');
+      const errorMsg = 'Failed to load posts';
+      toast.error(errorMsg);
+      setError(errorMsg);
       console.error(err);
     } finally {
       setIsLoading(false);

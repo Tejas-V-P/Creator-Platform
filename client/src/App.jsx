@@ -1,4 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 import Home from './pages/Home';
@@ -8,9 +11,9 @@ import Dashboard from './pages/Dashboard';
 import CreatePost from './pages/CreatePost';
 import EditPost from './pages/EditPost';
 
-// 1. Ensure consistent naming (PublicRoute usually capitalized)
+// Ensure naming consistency
 import ProtectedRoute from './components/common/ProtectedRoute';
-import PublicRoute from './components/common/publicRoute'; 
+import PublicRoute from './components/common/PublicRoute'; 
 
 import { AuthProvider } from './context/authContext';
 
@@ -19,14 +22,17 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <div style={appStyle}>
+          {/* ToastContainer added here for global error feedback */}
+          <ToastContainer position="top-right" autoClose={3000} />
+          
           <Header />
 
           <main style={mainStyle}>
             <Routes>
-              {/* PUBLIC ROUTES: Accessible to everyone */}
+              {/* PUBLIC ROUTES */}
               <Route path="/" element={<Home />} />
 
-              {/* AUTH ROUTES: Only for users who are NOT logged in */}
+              {/* AUTH ROUTES */}
               <Route 
                 path="/login" 
                 element={
@@ -44,7 +50,7 @@ function App() {
                 } 
               />
 
-              {/* PROTECTED ROUTES: Only for logged-in users */}
+              {/* PROTECTED ROUTES */}
               <Route 
                 path="/dashboard" 
                 element={
@@ -72,26 +78,6 @@ function App() {
                 } 
               />
               
-              <Route 
-                path="/edit/:id" 
-                element={
-                  <ProtectedRoute>
-                    <EditPost />
-                  </ProtectedRoute>
-                } 
-              />
-              
-              {/* Example of adding more protected routes easily:
-              <Route 
-                path="/profile" 
-                element={
-                  <ProtectedRoute>
-                    <Profile />
-                  </ProtectedRoute>
-                } 
-              /> 
-              */}
-              
               {/* 404 Page */}
               <Route path="*" element={<NotFound />} />
             </Routes>
@@ -113,7 +99,6 @@ const NotFound = () => {
   );
 };
 
-// Styles kept consistent
 const appStyle = {
   display: 'flex',
   flexDirection: 'column',

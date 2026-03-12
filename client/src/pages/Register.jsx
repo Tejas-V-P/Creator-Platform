@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { toast } from 'react-toastify';
 
 
 const Register = () => {
@@ -37,7 +38,7 @@ const Register = () => {
   }
 
 const handleSubmit = async (e) => {
-  e.preventDefault(); // Prevent page reload
+  e.preventDefault();
   
   // Clear previous messages
   setSuccessMessage('');
@@ -45,7 +46,7 @@ const handleSubmit = async (e) => {
 
   // Validate form
   if (!validateForm()) {
-    return; // Stop if validation fails
+    return;
   }
 
   // Start loading
@@ -72,6 +73,7 @@ const handleSubmit = async (e) => {
 
     if (response.ok) {
       // Registration successful
+      toast.success('🎉 Account created successfully! Redirecting to login...');
       setSuccessMessage('Account created successfully! Redirecting to login...');
       
       // Clear form
@@ -82,21 +84,24 @@ const handleSubmit = async (e) => {
         confirmPassword: ''
       });
 
-      //Redirect to login page after 2 seconds
+      // Redirect to login page after 1 second
       setTimeout(() => {
         navigate('/login');
       }, 1000);
-      // navigate('/login');
 
     } else {
       // Registration failed - show error from backend
-      setApiError(data.message || 'Registration failed. Please try again.');
+      const errorMsg = data.message || 'Registration failed. Please try again.';
+      toast.error(errorMsg);
+      setApiError(errorMsg);
     }
 
   } catch (error) {
     // Network or other error
     console.error('Registration error:', error);
-    setApiError('Unable to connect to server. Please check your connection and try again.');
+    const errorMsg = 'Unable to connect to server. Please check your connection and try again.';
+    toast.error(errorMsg);
+    setApiError(errorMsg);
   } finally {
     // Stop loading regardless of success/failure
     setIsLoading(false);

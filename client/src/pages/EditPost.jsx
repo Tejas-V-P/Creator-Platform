@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import api from '../services/api';
 
 const EditPost = () => {
@@ -33,7 +34,9 @@ const EditPost = () => {
         setIsLoading(false);
       } catch (err) {
         console.error('Fetch error:', err);
-        setError(err.response?.data?.message || 'Failed to load post');
+        const errorMessage = err.response?.data?.message || 'Failed to load post';
+        toast.error(errorMessage);
+        setError(errorMessage);
         setIsLoading(false);
       }
     };
@@ -54,17 +57,17 @@ const EditPost = () => {
 
     // Client-side validation
     if (!formData.title.trim()) {
-      setError('Title is required');
+      toast.error('Title is required');
       return;
     }
 
     if (!formData.content.trim()) {
-      setError('Content is required');
+      toast.error('Content is required');
       return;
     }
 
     if (formData.content.trim().length < 10) {
-      setError('Content must be at least 10 characters long');
+      toast.error('Content must be at least 10 characters long');
       return;
     }
 
@@ -74,11 +77,13 @@ const EditPost = () => {
       const response = await api.put(`/api/posts/${id}`, formData);
       
       if (response.data.success) {
+        toast.success('✨ Post updated successfully!');
         navigate('/dashboard');
       }
     } catch (err) {
       console.error('Update error:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Failed to update post';
+      toast.error(errorMessage);
       setError(errorMessage);
       setIsSaving(false);
     }
@@ -91,10 +96,13 @@ const EditPost = () => {
 
     try {
       await api.delete(`/api/posts/${id}`);
+      toast.success('🗑️ Post deleted successfully!');
       navigate('/dashboard');
     } catch (err) {
       console.error('Delete error:', err);
-      setError(err.response?.data?.message || 'Failed to delete post');
+      const errorMessage = err.response?.data?.message || 'Failed to delete post';
+      toast.error(errorMessage);
+      setError(errorMessage);
     }
   };
 

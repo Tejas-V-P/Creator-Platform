@@ -5,6 +5,7 @@ import connectDB from './config/database.js';
 import userRoutes from './routes/userRoutes.js';
 import authRoutes from './routes/authRoutes.js'; // Add this import
 import postRoutes from './routes/postRoutes.js';
+import errorHandler from './middleware/errorMiddleware.js';
 
 dotenv.config();
 connectDB();
@@ -17,6 +18,7 @@ app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:5173',
   credentials: true
 }));
+app.use(errorHandler);
 
 app.use(express.json());
 

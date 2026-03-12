@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import api from '../services/api';
 
 const CreatePost = () => {
@@ -27,17 +28,17 @@ const CreatePost = () => {
 
     // Client-side validation
     if (!formData.title.trim()) {
-      setError('Title is required');
+      toast.error('Title is required');
       return;
     }
 
     if (!formData.content.trim()) {
-      setError('Content is required');
+      toast.error('Content is required');
       return;
     }
 
     if (formData.content.trim().length < 10) {
-      setError('Content must be at least 10 characters long');
+      toast.error('Content must be at least 10 characters long');
       return;
     }
 
@@ -47,12 +48,14 @@ const CreatePost = () => {
       const response = await api.post('/api/posts', formData);
       
       if (response.data.success) {
+        toast.success('🎉 Post created successfully!');
         // Redirect to dashboard after successful creation
         navigate('/dashboard');
       }
     } catch (err) {
       console.error('Create post error:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Failed to create post';
+      toast.error(errorMessage);
       setError(errorMessage);
     } finally {
       setIsLoading(false);
