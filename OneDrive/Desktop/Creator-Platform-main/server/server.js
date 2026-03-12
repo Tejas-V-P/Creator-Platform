@@ -1,0 +1,40 @@
+import express from 'express';
+import dotenv from 'dotenv';
+import cors from 'cors';
+import connectDB from './config/database.js';
+import userRoutes from './routes/userRoutes.js';
+import authRoutes from './routes/authRoutes.js'; // Add this import
+import postRoutes from './routes/postRoutes.js';
+import errorHandler from './middleware/errorMiddleware.js';
+
+dotenv.config();
+connectDB();
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+// Middleware
+app.use(cors({
+  origin: process.env.CLIENT_URL || 'http://localhost:5174',
+  credentials: true
+}));
+
+app.use(express.json());
+app.use(errorHandler);
+
+// Routes
+app.use('/api/users', userRoutes);
+app.use('/api/auth', authRoutes); // Add this line
+app.use('/api/posts', postRoutes);
+
+// Health check
+app.get('/api/health', (_req, res) => {
+  res.json({ 
+    message: 'Server is running!',
+    timestamp: new Date()
+  });
+});
+
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
+});
