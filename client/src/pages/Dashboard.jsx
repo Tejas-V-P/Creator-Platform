@@ -1,78 +1,501 @@
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
 import api from '../services/api';
 
 const Dashboard = () => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
+  const [posts, setPosts] = useState([]);
+  const [pagination, setPagination] = useState({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const handleAction = async (action) => {
+  // Fetch posts when component mounts or page changes
+  useEffect(() => {
+    fetchPosts(currentPage);
+  }, [currentPage]);
+
+  const fetchPosts = async (page) => {
+    setIsLoading(true);
+    setError('');
+
     try {
-      // Example of using the api utility for different actions
-      if (action === 'delete') {
-        await api.delete('/api/posts/1'); // Replace with your actual ID logic
-        alert('Item deleted successfully!');
-      } else {
-        alert(`${action} action triggered successfully!`);
-      }
-    } catch (error) {
-      console.error(`${action} failed:`, error);
-      alert('Action failed. Please check console.');
+      const response = await api.get(`/api/posts?page=${page}&limit=10`);
+      
+      setPosts(response.data.data);
+      setPagination(response.data.pagination);
+    } catch (err) {
+      setError('Failed to load posts');
+      console.error(err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+  };
+
+  if (isLoading) {
+    return (
+      <div style={loadingStyle}>
+        <div style={spinnerStyle}>⏳</div>
+        <p>Loading your posts...</p>
+      </div>
+    );
+  }
+
   return (
     <div style={containerStyle}>
-      <div style={headerStyle}>
-        <h1>Dashboard</h1>
-        <p>Welcome back, {user?.name}!</p>
-      </div>
+      <div style={contentWrapperStyle}>
+        {/* Header Section */}
+        <div style={headerStyle}>
+          <div style={welcomeSection}>
+            <h1 style={titleStyle}>Welcome back, {user?.name}! 👋</h1>
+            <p style={subtitleStyle}>Manage your posts and track your content</p>
+          </div>
+          <Link to="/create" style={{ textDecoration: 'none' }}>
+            <button style={createButtonStyle}>
+              <span style={buttonIconStyle}>+</span>
+              Create New Post
+            </button>
+          </Link>
+        </div>
 
-      <div style={contentStyle}>
-        <div style={cardStyle}>
-          <h2>Your Account</h2>
-          <div style={infoStyle}>
-            <p><strong>Name:</strong> {user?.name}</p>
-            <p><strong>Email:</strong> {user?.email}</p>
-            <p><strong>Member Since:</strong> {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Recent'}</p>
+        {/* Stats Cards */}
+        <div style={statsContainerStyle}>
+          <div style={statCardStyle}>
+            <div style={statIconStyle}>📝</div>
+            <div>
+              <div style={statNumberStyle}>{pagination.total || 0}</div>
+              <div style={statLabelStyle}>Total Posts</div>
+            </div>
+          </div>
+          <div style={statCardStyle}>
+            <div style={statIconStyle}>✅</div>
+            <div>
+              <div style={statNumberStyle}>{posts.filter(p => p.status === 'published').length}</div>
+              <div style={statLabelStyle}>Published</div>
+            </div>
+          </div>
+          <div style={statCardStyle}>
+            <div style={statIconStyle}>📄</div>
+            <div>
+              <div style={statNumberStyle}>{posts.filter(p => p.status === 'draft').length}</div>
+              <div style={statLabelStyle}>Drafts</div>
+            </div>
           </div>
         </div>
 
-        <div style={placeholderStyle}>
-          <h2>Quick Actions</h2>
-          <button onClick={logout} style={logoutButtonStyle}>Logout</button>
+        {/* Error Message */}
+        {error && (
+          <div style={errorStyle}>
+            <span style={errorIconStyle}>⚠️</span>
+            {error}
+          </div>
+        )}
+
+        {/* Posts Section */}
+        <div style={postsContainerStyle}>
+          <h2 style={sectionTitleStyle}>Your Posts</h2>
           
-          <ul style={listStyle}>
-            <li>Statistics and analytics</li>
-            <li>
-              Actions: 
-              <button onClick={() => handleAction('create')} style={actionButtonStyle}>Create</button> 
-              <button onClick={() => handleAction('edit')} style={actionButtonStyle}>Edit</button> 
-              <button onClick={() => handleAction('delete')} style={actionButtonStyle}>Delete</button> 
-            </li>
-          </ul>
+          {posts.length === 0 ? (
+            <div style={emptyStateStyle}>
+              <div style={emptyIconStyle}>📭</div>
+              <h3 style={emptyTitleStyle}>No posts yet</h3>
+              <p style={emptyTextStyle}>Start creating amazing content today!</p>
+              <Link to="/create" style={{ textDecoration: 'none' }}>
+                <button style={emptyButtonStyle}>Create Your First Post</button>
+              </Link>
+            </div>
+          ) : (
+            <>
+              <div style={postsGridStyle}>
+                {posts.map((post) => (
+                  <div key={post._id} style={postCardStyle}>
+                    <div style={postHeaderStyle}>
+                      <span style={getCategoryBadgeStyle(post.category)}>
+                        {post.category}
+                      </span>
+                      <span style={getStatusBadgeStyle(post.status)}>
+                        {post.status}
+                      </span>
+                    </div>
+                    
+                    <h3 style={postTitleStyle}>{post.title}</h3>
+                    
+                    <p style={contentPreviewStyle}>
+                      {post.content.substring(0, 120)}
+                      {post.content.length > 120 && '...'}
+                    </p>
+                    
+                    <div style={postFooterStyle}>
+                      <span style={dateStyle}>
+                        📅 {new Date(post.createdAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}
+                      </span>
+                      <button style={viewButtonStyle}>View →</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {pagination.totalPages > 1 && (
+                <div style={paginationStyle}>
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={!pagination.hasPrevPage}
+                    style={{
+                      ...paginationButtonStyle,
+                      opacity: pagination.hasPrevPage ? 1 : 0.5,
+                      cursor: pagination.hasPrevPage ? 'pointer' : 'not-allowed'
+                    }}
+                  >
+                    ← Previous
+                  </button>
+
+                  <div style={pageInfoStyle}>
+                    <span style={currentPageStyle}>Page {pagination.page}</span>
+                    <span style={totalPagesStyle}>of {pagination.totalPages}</span>
+                  </div>
+
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={!pagination.hasNextPage}
+                    style={{
+                      ...paginationButtonStyle,
+                      opacity: pagination.hasNextPage ? 1 : 0.5,
+                      cursor: pagination.hasNextPage ? 'pointer' : 'not-allowed'
+                    }}
+                  >
+                    Next →
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>
   );
 };
 
-// --- Styles ---
+// Helper functions for dynamic styles
+const getCategoryBadgeStyle = (category) => ({
+  ...categoryBadgeStyle,
+  backgroundColor: getCategoryColor(category),
+});
 
-const containerStyle = { minHeight: '80vh', padding: '2rem' };
-const headerStyle = { maxWidth: '1200px', margin: '0 auto 2rem' };
-const contentStyle = { maxWidth: '1200px', margin: '0 auto' };
-const placeholderStyle = { backgroundColor: '#f8f9fa', padding: '2rem', borderRadius: '8px' };
-const listStyle = { paddingLeft: '1.5rem', marginTop: '1rem' };
-const cardStyle = { backgroundColor: '#fff', padding: '2rem', borderRadius: '8px', marginBottom: '2rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' };
-const infoStyle = { marginTop: '1rem' };
-const actionButtonStyle = { marginLeft: '5px', cursor: 'pointer', padding: '5px 10px' };
-const logoutButtonStyle = {
-  backgroundColor: '#dc3545',
+const getCategoryColor = (category) => {
+  const colors = {
+    'Technology': '#e3f2fd',
+    'Lifestyle': '#f3e5f5',
+    'Travel': '#e8f5e9',
+    'Food': '#fff3e0'
+  };
+  return colors[category] || '#f5f5f5';
+};
+
+const getStatusBadgeStyle = (status) => ({
+  ...statusBadgeStyle,
+  backgroundColor: status === 'published' ? '#d4edda' : '#fff3cd',
+  color: status === 'published' ? '#155724' : '#856404',
+});
+
+// Elegant Styles
+const containerStyle = {
+  minHeight: '100vh',
+  backgroundColor: '#f8f9fa',
+  padding: '2rem 1rem',
+};
+
+const contentWrapperStyle = {
+  maxWidth: '1200px',
+  margin: '0 auto',
+};
+
+const headerStyle = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: '2rem',
+  flexWrap: 'wrap',
+  gap: '1rem',
+};
+
+const welcomeSection = {
+  flex: 1,
+};
+
+const titleStyle = {
+  fontSize: '2rem',
+  fontWeight: '700',
+  color: '#1a1a1a',
+  margin: '0 0 0.5rem 0',
+};
+
+const subtitleStyle = {
+  fontSize: '1rem',
+  color: '#6c757d',
+  margin: 0,
+};
+
+const createButtonStyle = {
+  backgroundColor: '#007bff',
   color: 'white',
-  padding: '0.5rem 1rem',
   border: 'none',
-  borderRadius: '4px',
+  padding: '0.875rem 1.75rem',
+  borderRadius: '8px',
+  fontSize: '1rem',
+  fontWeight: '600',
   cursor: 'pointer',
-  marginTop: '1rem',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.5rem',
+  transition: 'all 0.3s ease',
+  boxShadow: '0 2px 8px rgba(0, 123, 255, 0.3)',
+};
+
+const buttonIconStyle = {
+  fontSize: '1.25rem',
+  fontWeight: 'bold',
+};
+
+const statsContainerStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+  gap: '1.5rem',
+  marginBottom: '2.5rem',
+};
+
+const statCardStyle = {
+  backgroundColor: 'white',
+  padding: '1.5rem',
+  borderRadius: '12px',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '1rem',
+  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+  transition: 'transform 0.2s ease',
+};
+
+const statIconStyle = {
+  fontSize: '2.5rem',
+};
+
+const statNumberStyle = {
+  fontSize: '2rem',
+  fontWeight: '700',
+  color: '#1a1a1a',
+  lineHeight: 1,
+};
+
+const statLabelStyle = {
+  fontSize: '0.875rem',
+  color: '#6c757d',
+  marginTop: '0.25rem',
+};
+
+const sectionTitleStyle = {
+  fontSize: '1.5rem',
+  fontWeight: '600',
+  color: '#1a1a1a',
+  marginBottom: '1.5rem',
+};
+
+const postsContainerStyle = {
+  backgroundColor: 'white',
+  padding: '2rem',
+  borderRadius: '12px',
+  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+};
+
+const postsGridStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+  gap: '1.5rem',
+  marginBottom: '2rem',
+};
+
+const postCardStyle = {
+  backgroundColor: '#fafafa',
+  border: '1px solid #e9ecef',
+  borderRadius: '10px',
+  padding: '1.5rem',
+  transition: 'all 0.3s ease',
+  cursor: 'pointer',
+};
+
+const postHeaderStyle = {
+  display: 'flex',
+  gap: '0.5rem',
+  marginBottom: '1rem',
+  flexWrap: 'wrap',
+};
+
+const categoryBadgeStyle = {
+  padding: '0.25rem 0.75rem',
+  borderRadius: '20px',
+  fontSize: '0.75rem',
+  fontWeight: '600',
+  color: '#495057',
+};
+
+const statusBadgeStyle = {
+  padding: '0.25rem 0.75rem',
+  borderRadius: '20px',
+  fontSize: '0.75rem',
+  fontWeight: '600',
+};
+
+const postTitleStyle = {
+  fontSize: '1.25rem',
+  fontWeight: '600',
+  color: '#1a1a1a',
+  marginBottom: '0.75rem',
+  lineHeight: 1.4,
+};
+
+const contentPreviewStyle = {
+  fontSize: '0.9rem',
+  color: '#6c757d',
+  lineHeight: 1.6,
+  marginBottom: '1rem',
+};
+
+const postFooterStyle = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  paddingTop: '1rem',
+  borderTop: '1px solid #e9ecef',
+};
+
+const dateStyle = {
+  fontSize: '0.85rem',
+  color: '#6c757d',
+};
+
+const viewButtonStyle = {
+  backgroundColor: 'transparent',
+  color: '#007bff',
+  border: 'none',
+  padding: '0.5rem 1rem',
+  borderRadius: '6px',
+  fontSize: '0.9rem',
+  fontWeight: '600',
+  cursor: 'pointer',
+  transition: 'all 0.2s ease',
+};
+
+const emptyStateStyle = {
+  textAlign: 'center',
+  padding: '4rem 2rem',
+};
+
+const emptyIconStyle = {
+  fontSize: '4rem',
+  marginBottom: '1rem',
+};
+
+const emptyTitleStyle = {
+  fontSize: '1.5rem',
+  fontWeight: '600',
+  color: '#1a1a1a',
+  marginBottom: '0.5rem',
+};
+
+const emptyTextStyle = {
+  fontSize: '1rem',
+  color: '#6c757d',
+  marginBottom: '2rem',
+};
+
+const emptyButtonStyle = {
+  backgroundColor: '#007bff',
+  color: 'white',
+  border: 'none',
+  padding: '0.875rem 2rem',
+  borderRadius: '8px',
+  fontSize: '1rem',
+  fontWeight: '600',
+  cursor: 'pointer',
+  transition: 'all 0.3s ease',
+};
+
+const paginationStyle = {
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  gap: '1.5rem',
+  paddingTop: '1.5rem',
+  borderTop: '1px solid #e9ecef',
+};
+
+const paginationButtonStyle = {
+  backgroundColor: 'white',
+  color: '#007bff',
+  border: '2px solid #007bff',
+  padding: '0.625rem 1.5rem',
+  borderRadius: '8px',
+  fontSize: '0.9rem',
+  fontWeight: '600',
+  transition: 'all 0.2s ease',
+};
+
+const pageInfoStyle = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: '0.25rem',
+};
+
+const currentPageStyle = {
+  fontSize: '1.125rem',
+  fontWeight: '700',
+  color: '#1a1a1a',
+};
+
+const totalPagesStyle = {
+  fontSize: '0.875rem',
+  color: '#6c757d',
+};
+
+const loadingStyle = {
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'center',
+  alignItems: 'center',
+  minHeight: '80vh',
+  gap: '1rem',
+  fontSize: '1.125rem',
+  color: '#6c757d',
+};
+
+const spinnerStyle = {
+  fontSize: '3rem',
+  animation: 'spin 2s linear infinite',
+};
+
+const errorStyle = {
+  backgroundColor: '#f8d7da',
+  color: '#721c24',
+  padding: '1rem 1.5rem',
+  borderRadius: '8px',
+  marginBottom: '1.5rem',
+  border: '1px solid #f5c6cb',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.75rem',
+};
+
+const errorIconStyle = {
+  fontSize: '1.5rem',
 };
 
 export default Dashboard;

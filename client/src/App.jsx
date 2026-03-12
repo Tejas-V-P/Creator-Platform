@@ -5,6 +5,7 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import CreatePost from './pages/CreatePost';
 
 // 1. Ensure consistent naming (PublicRoute usually capitalized)
 import ProtectedRoute from './components/common/ProtectedRoute';
@@ -51,6 +52,16 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
+
+              <Route 
+                path="/create" 
+                element={
+                  <ProtectedRoute>
+                    <CreatePost />
+                  </ProtectedRoute>
+                } 
+              />
+
               
               {/* Example of adding more protected routes easily:
               <Route 
