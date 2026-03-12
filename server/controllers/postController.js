@@ -21,7 +21,7 @@ export const createPost = async (req, res) => {
       content,
       category,
       status,
-      author: req.user._id // From protect middleware
+      author: req.user._id
     });
 
     res.status(201).json({
@@ -45,24 +45,17 @@ export const createPost = async (req, res) => {
 // @access  Private
 export const getPosts = async (req, res) => {
   try {
-    // Get page and limit from query params (with defaults)
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    
-    // Calculate skip value
     const skip = (page - 1) * limit;
 
-    // Get posts for logged-in user only
     const posts = await Post.find({ author: req.user._id })
-      .sort({ createdAt: -1 }) // Newest first
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .populate('author', 'name email'); // Include author info
+      .populate('author', 'name email');
 
-    // Get total count for pagination
     const total = await Post.countDocuments({ author: req.user._id });
-
-    // Calculate total pages
     const totalPages = Math.ceil(total / limit);
 
     res.status(200).json({
@@ -85,5 +78,81 @@ export const getPosts = async (req, res) => {
       message: 'Error fetching posts',
       error: error.message
     });
+  }
+};
+
+// @desc    Get single post by ID
+// @route   GET /api/posts/:id
+// @access  Private
+export const getPostById = async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+
+    if (!post) {
+      return res.status(404).json({ success: false, message: 'Post not found' });
+    }
+
+    // Ownership check
+    if (post.author.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    res.status(200).json({ success: true, data: post });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error fetching post', error: error.message });
+  }
+};
+
+// @desc    Update post
+// @route   PUT /api/posts/:id
+// @access  Private
+export const updatePost = async (req, res) => {
+  try {
+    let post = await Post.findById(req.params.id);
+
+    if (!post) {
+      return res.status(404).json({ success: false, message: 'Post not found' });
+    }
+
+    // Ownership check
+    if (post.author.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Not authorized to update this post' });
+    }
+
+    const { title, content, category, status } = req.body;
+    post.title = title || post.title;
+    post.content = content || post.content;
+    post.category = category || post.category;
+    post.status = status || post.status;
+
+    await post.save();
+
+    res.status(200).json({ success: true, message: 'Post updated successfully', data: post });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error updating post', error: error.message });
+  }
+};
+
+// @desc    Delete post
+// @route   DELETE /api/posts/:id
+// @access  Private
+export const deletePost = async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+
+    if (!post) {
+      return res.status(404).json({ success: false, message: 'Post not found' });
+    }
+
+    // Ownership check
+    if (post.author.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Not authorized to delete this post' });
+    }
+
+    await post.deleteOne();
+
+    res.status(200).json({ success: true, message: 'Post deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error deleting post', error: error.message });
   }
 };

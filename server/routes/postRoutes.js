@@ -1,11 +1,25 @@
 import express from 'express';
 import { protect } from '../middleware/auth.js';
-import { createPost, getPosts } from '../controllers/postController.js';
+import { 
+  createPost, 
+  getPosts, 
+  getPostById,   // Import new controller
+  updatePost,    // Import new controller
+  deletePost     // Import new controller
+} from '../controllers/postController.js';
 
 const router = express.Router();
 
-// Both routes require authentication
-router.post('/', protect, createPost);
-router.get('/', protect, getPosts);
+// Routes for base collection
+router.route('/')
+  .post(protect, createPost)
+  .get(protect, getPosts);
+
+// Routes for individual posts
+// The :id parameter allows us to target specific resources
+router.route('/:id')
+  .get(protect, getPostById)
+  .put(protect, updatePost)
+  .delete(protect, deletePost);
 
 export default router;
