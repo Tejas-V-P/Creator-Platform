@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
 import { toast } from 'react-toastify';
 import api from '../services/api';
+// 🆕 ADDED: Import your centralized socket instance
+import socket from '../services/socket'; 
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -11,6 +13,35 @@ const Dashboard = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // 🆕 ADDED: Socket connection and cleanup effect
+  useEffect(() => {
+    // Connect when component mounts (since user is logged in if they are on Dashboard)
+    socket.connect();
+
+    // Listen for successful connection
+    socket.on('connect', () => {
+      console.log('🔌 Socket connected:', socket.id);
+    });
+
+    // Listen for disconnection
+    socket.on('disconnect', (reason) => {
+      console.log('❌ Socket disconnected:', reason);
+    });
+
+    // Listen for connection errors
+    socket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error.message);
+    });
+
+    // Cleanup when component unmounts (critical to prevent memory leaks)
+    return () => {
+      socket.off('connect');
+      socket.off('disconnect');
+      socket.off('connect_error');
+      socket.disconnect();
+    };
+  }, []); // Empty dependency array ensures this runs once on mount
 
   // Fetch posts when component mounts or page changes
   useEffect(() => {
