@@ -3,11 +3,10 @@ import Post from '../models/Post.js';
 // @desc    Create new post
 // @route   POST /api/posts
 // @access  Private
-export const createPost = async (req, res, next) => {
+export const createPost = async (req, res, io, next) => {
   try {
     const { title, content, category, status } = req.body;
 
-    // Validate required fields
     if (!title || !content) {
       const error = new Error('Please provide title and content');
       error.status = 400;
@@ -22,13 +21,18 @@ export const createPost = async (req, res, next) => {
       author: req.user._id
     });
 
+    // Emit real-time event to all connected clients
+    if (io) {
+      io.emit('newPost', { title: post.title, author: req.user.name });
+    }
+
     res.status(201).json({
       success: true,
       message: 'Post created successfully',
       data: post
     });
   } catch (error) {
-    next(error); // Forward to middleware
+    next(error);
   }
 };
 

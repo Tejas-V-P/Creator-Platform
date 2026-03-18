@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
+import { Toaster } from 'react-hot-toast'; // Added for Lesson 4.3 requirement
 import 'react-toastify/dist/ReactToastify.css';
 
 import Header from './components/layout/Header';
@@ -22,7 +23,12 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <div style={appStyle}>
-          {/* ToastContainer added here for global error feedback */}
+          {/* Lesson 4.3: Added Toaster here. 
+              Note: You now have both Toastify and Hot-Toast. 
+              Use toast.success() from 'react-hot-toast' for the socket notifications.
+          */}
+          <Toaster position="top-right" reverseOrder={false} />
+          
           <ToastContainer position="top-right" autoClose={3000} />
           
           <Header />

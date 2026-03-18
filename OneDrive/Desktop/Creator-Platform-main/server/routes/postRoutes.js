@@ -3,23 +3,27 @@ import { protect } from '../middleware/auth.js';
 import { 
   createPost, 
   getPosts, 
-  getPostById,   // Import new controller
-  updatePost,    // Import new controller
-  deletePost     // Import new controller
+  getPostById, 
+  updatePost, 
+  deletePost 
 } from '../controllers/postController.js';
 
 const router = express.Router();
 
-// Routes for base collection
-router.route('/')
-  .post(protect, createPost)
-  .get(protect, getPosts);
+// We export a function that takes 'io' as an argument
+export default (io) => {
+  
+  // Routes for base collection
+  router.route('/')
+    // Pass 'io' into the controller using a wrapper function
+    .post(protect, (req, res, next) => createPost(req, res, io, next))
+    .get(protect, getPosts);
 
-// Routes for individual posts
-// The :id parameter allows us to target specific resources
-router.route('/:id')
-  .get(protect, getPostById)
-  .put(protect, updatePost)
-  .delete(protect, deletePost);
+  // Routes for individual posts
+  router.route('/:id')
+    .get(protect, getPostById)
+    .put(protect, updatePost)
+    .delete(protect, deletePost);
 
-export default router;
+  return router;
+};

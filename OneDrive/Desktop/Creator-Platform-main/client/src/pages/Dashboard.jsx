@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
-import { toast } from 'react-toastify';
+import { toast as toastify } from 'react-toastify'; 
+import toast from 'react-hot-toast'; // 🆕 For Lesson 4.3 real-time notifications
 import api from '../services/api';
-// 🆕 ADDED: Import your centralized socket instance
 import socket from '../services/socket'; 
 
 const Dashboard = () => {
@@ -14,41 +14,7 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // 🆕 ADDED: Socket connection and cleanup effect
-  useEffect(() => {
-    // Connect when component mounts (since user is logged in if they are on Dashboard)
-    socket.connect();
-
-    // Listen for successful connection
-    socket.on('connect', () => {
-      console.log('🔌 Socket connected:', socket.id);
-    });
-
-    // Listen for disconnection
-    socket.on('disconnect', (reason) => {
-      console.log('❌ Socket disconnected:', reason);
-    });
-
-    // Listen for connection errors
-    socket.on('connect_error', (error) => {
-      console.error('Socket connection error:', error.message);
-    });
-
-    // Cleanup when component unmounts (critical to prevent memory leaks)
-    return () => {
-      socket.off('connect');
-      socket.off('disconnect');
-      socket.off('connect_error');
-      socket.disconnect();
-    };
-  }, []); // Empty dependency array ensures this runs once on mount
-
-  // Fetch posts when component mounts or page changes
-  useEffect(() => {
-    fetchPosts(currentPage);
-  }, [currentPage]);
-
-  const fetchPosts = async (page) => {
+  const fetchPosts = useCallback(async (page) => {
     setIsLoading(true);
     setError('');
 
@@ -58,32 +24,78 @@ const Dashboard = () => {
       setPagination(response.data.pagination);
     } catch (err) {
       const errorMsg = 'Failed to load posts';
-      toast.error(errorMsg);
+      toastify.error(errorMsg);
       setError(errorMsg);
       console.error(err);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  // EFFECT: Socket connection and Real-Time Event Listeners
+  useEffect(() => {
+    // Establish connection
+    socket.connect();
+
+    socket.on('connect', () => {
+      console.log('🔌 Socket connected:', socket.id);
+    });
+
+    // 🆕 LISTEN for new post events from ANY user
+    socket.on('newPost', (data) => {
+      // Trigger the react-hot-toast notification
+      toast.success(`📢 New post: "${data.title}" by ${data.author}`, {
+        duration: 6000,
+        icon: '🚀',
+        style: {
+          borderRadius: '10px',
+          background: '#333',
+          color: '#fff',
+        },
+      });
+      
+      // Refresh the list automatically so the new post appears
+      fetchPosts(currentPage);
+    });
+
+    socket.on('disconnect', (reason) => {
+      console.log('❌ Socket disconnected:', reason);
+    });
+
+    socket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error.message);
+    });
+
+    // CLEANUP: Remove listeners to prevent memory leaks and duplicate toasts
+    return () => {
+      socket.off('connect');
+      socket.off('newPost');
+      socket.off('disconnect');
+      socket.off('connect_error');
+      socket.disconnect();
+    };
+  }, [currentPage, fetchPosts]); 
+
+  // EFFECT: Fetch posts on page change
+  useEffect(() => {
+    fetchPosts(currentPage);
+  }, [currentPage, fetchPosts]);
 
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
   };
 
-  // --- DELETE FUNCTIONALITY ---
   const handleDelete = async (postId) => {
     const confirmed = window.confirm('Are you sure you want to delete this post? This action cannot be undone.');
-    
     if (!confirmed) return;
 
     try {
       await api.delete(`/api/posts/${postId}`);
-      // Optimistic update: remove from UI immediately
       setPosts(posts.filter(post => post._id !== postId));
-      alert('Post deleted successfully');
+      toastify.success('Post deleted successfully');
     } catch (err) {
       console.error('Delete error:', err);
-      alert(err.response?.data?.message || 'Failed to delete post');
+      toastify.error(err.response?.data?.message || 'Failed to delete post');
     }
   };
 
@@ -179,7 +191,6 @@ const Dashboard = () => {
                       {post.content.length > 120 && '...'}
                     </p>
                     
-                    {/* --- UPDATED FOOTER WITH EDIT/DELETE --- */}
                     <div style={postFooterStyle}>
                       <span style={dateStyle}>
                         📅 {new Date(post.createdAt).toLocaleDateString('en-US', {
@@ -270,7 +281,6 @@ const deleteButtonStyle = {
   cursor: 'pointer',
 };
 
-// Helper functions for dynamic styles
 const getCategoryBadgeStyle = (category) => ({
   ...categoryBadgeStyle,
   backgroundColor: getCategoryColor(category),
@@ -292,7 +302,6 @@ const getStatusBadgeStyle = (status) => ({
   color: status === 'published' ? '#155724' : '#856404',
 });
 
-// Layout Styles
 const containerStyle = { minHeight: '100vh', backgroundColor: '#f8f9fa', padding: '2rem 1rem' };
 const contentWrapperStyle = { maxWidth: '1200px', margin: '0 auto' };
 const headerStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' };
