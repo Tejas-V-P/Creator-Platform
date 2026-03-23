@@ -5,7 +5,8 @@ import Post from '../models/Post.js';
 // @access  Private
 export const createPost = async (req, res, io, next) => {
   try {
-    const { title, content, category, status } = req.body;
+    // UPDATED: Added coverImage to destructuring
+    const { title, content, category, status, coverImage } = req.body;
 
     if (!title || !content) {
       const error = new Error('Please provide title and content');
@@ -13,11 +14,13 @@ export const createPost = async (req, res, io, next) => {
       throw error;
     }
 
+    // UPDATED: Added coverImage to the Post.create call
     const post = await Post.create({
       title,
       content,
       category,
       status,
+      coverImage: coverImage || null, // Stores the Cloudinary URL
       author: req.user._id
     });
 
@@ -115,11 +118,19 @@ export const updatePost = async (req, res, next) => {
       throw error;
     }
 
-    const { title, content, category, status } = req.body;
+    // UPDATED: Added coverImage to destructuring and update logic
+    const { title, content, category, status, coverImage } = req.body;
+    
     post.title = title || post.title;
     post.content = content || post.content;
     post.category = category || post.category;
     post.status = status || post.status;
+    
+    // If a new coverImage is provided in the body, update it.
+    // If coverImage is explicitly null, it will remove the image reference.
+    if (coverImage !== undefined) {
+      post.coverImage = coverImage;
+    }
 
     await post.save();
 

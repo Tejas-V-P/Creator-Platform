@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import api from '../services/api';
+import ImageUpload from '../components/posts/ImageUpload'; // Adjust path as necessary
 
 const CreatePost = () => {
   const [formData, setFormData] = useState({
@@ -10,10 +11,37 @@ const CreatePost = () => {
     category: 'Technology',
     status: 'draft'
   });
+
+  // --- NEW STATE FOR IMAGES ---
+  const [coverImageUrl, setCoverImageUrl] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  // ----------------------------
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   
   const navigate = useNavigate();
+
+  // --- NEW: HANDLE CLOUDINARY UPLOAD ---
+  const handleUpload = async (imageFormData) => {
+    setIsUploading(true);
+    setUploadError('');
+    try {
+      // Step 1: Send FormData to your /api/upload endpoint
+      const response = await api.post('/api/upload', imageFormData);
+      
+      // Step 2: Store the URL returned by Cloudinary
+      setCoverImageUrl(response.data.url);
+      toast.success('📸 Image ready for your post!');
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Image upload failed';
+      setUploadError(msg);
+      toast.error(msg);
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({
@@ -26,35 +54,28 @@ const CreatePost = () => {
     e.preventDefault();
     setError('');
 
-    // Client-side validation
-    if (!formData.title.trim()) {
-      toast.error('Title is required');
-      return;
-    }
-
-    if (!formData.content.trim()) {
-      toast.error('Content is required');
-      return;
-    }
-
-    if (formData.content.trim().length < 10) {
-      toast.error('Content must be at least 10 characters long');
+    if (!formData.title.trim() || !formData.content.trim()) {
+      toast.error('Title and content are required');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const response = await api.post('/api/posts', formData);
+      // Build the final object including the coverImage URL
+      const postData = {
+        ...formData,
+        coverImage: coverImageUrl // This is null if no image was uploaded
+      };
+
+      const response = await api.post('/api/posts', postData);
       
       if (response.data.success) {
         toast.success('🎉 Post created successfully!');
-        // Redirect to dashboard after successful creation
         navigate('/dashboard');
       }
     } catch (err) {
-      console.error('Create post error:', err);
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to create post';
+      const errorMessage = err.response?.data?.message || 'Failed to create post';
       toast.error(errorMessage);
       setError(errorMessage);
     } finally {
@@ -76,6 +97,27 @@ const CreatePost = () => {
         )}
 
         <form onSubmit={handleSubmit} style={formStyle}>
+          
+          {/* IMAGE UPLOAD SECTION */}
+          <div style={fieldStyle}>
+            <label style={labelStyle}>Cover Image</label>
+            <div style={uploadBoxStyle}>
+              <ImageUpload onUpload={handleUpload} />
+              
+              {isUploading && (
+                <p style={uploadStatusStyle}>✨ Uploading to Cloudinary...</p>
+              )}
+              
+              {uploadError && (
+                <p style={warningStyle}>❌ {uploadError}</p>
+              )}
+              
+              {coverImageUrl && !isUploading && (
+                <p style={successTextStyle}>✅ Image uploaded and attached!</p>
+              )}
+            </div>
+          </div>
+
           {/* Title */}
           <div style={fieldStyle}>
             <label style={labelStyle}>
@@ -118,34 +160,35 @@ const CreatePost = () => {
             </span>
           </div>
 
-          {/* Category */}
-          <div style={fieldStyle}>
-            <label style={labelStyle}>Category</label>
-            <select
-              name="category"
-              value={formData.category}
-              onChange={handleChange}
-              style={inputStyle}
-            >
-              <option value="Technology">🖥️ Technology</option>
-              <option value="Lifestyle">🌟 Lifestyle</option>
-              <option value="Travel">✈️ Travel</option>
-              <option value="Food">🍔 Food</option>
-            </select>
-          </div>
+          {/* Category & Status Row */}
+          <div style={rowStyle}>
+            <div style={{...fieldStyle, flex: 1}}>
+              <label style={labelStyle}>Category</label>
+              <select
+                name="category"
+                value={formData.category}
+                onChange={handleChange}
+                style={inputStyle}
+              >
+                <option value="Technology">🖥️ Technology</option>
+                <option value="Lifestyle">🌟 Lifestyle</option>
+                <option value="Travel">✈️ Travel</option>
+                <option value="Food">🍔 Food</option>
+              </select>
+            </div>
 
-          {/* Status */}
-          <div style={fieldStyle}>
-            <label style={labelStyle}>Status</label>
-            <select
-              name="status"
-              value={formData.status}
-              onChange={handleChange}
-              style={inputStyle}
-            >
-              <option value="draft">📝 Draft</option>
-              <option value="published">✅ Published</option>
-            </select>
+            <div style={{...fieldStyle, flex: 1}}>
+              <label style={labelStyle}>Status</label>
+              <select
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                style={inputStyle}
+              >
+                <option value="draft">📝 Draft</option>
+                <option value="published">✅ Published</option>
+              </select>
+            </div>
           </div>
 
           <div style={buttonGroupStyle}>
@@ -158,11 +201,11 @@ const CreatePost = () => {
             </button>
             <button 
               type="submit" 
-              disabled={isLoading || formData.content.length < 10}
+              disabled={isLoading || isUploading || formData.content.length < 10}
               style={{
                 ...buttonStyle,
-                opacity: (isLoading || formData.content.length < 10) ? 0.6 : 1,
-                cursor: (isLoading || formData.content.length < 10) ? 'not-allowed' : 'pointer'
+                opacity: (isLoading || isUploading || formData.content.length < 10) ? 0.6 : 1,
+                cursor: (isLoading || isUploading || formData.content.length < 10) ? 'not-allowed' : 'pointer'
               }}
             >
               {isLoading ? '✨ Creating...' : '🚀 Create Post'}
@@ -174,7 +217,7 @@ const CreatePost = () => {
   );
 };
 
-// Elegant Styles
+// --- STYLES ---
 
 const containerStyle = {
   display: 'flex',
@@ -218,6 +261,12 @@ const fieldStyle = {
   gap: '0.5rem',
 };
 
+const rowStyle = {
+  display: 'flex',
+  gap: '1rem',
+  flexWrap: 'wrap',
+};
+
 const labelStyle = {
   fontSize: '0.95rem',
   fontWeight: '600',
@@ -245,6 +294,27 @@ const textareaStyle = {
   lineHeight: '1.6',
 };
 
+const uploadBoxStyle = {
+  padding: '1rem',
+  border: '2px dashed #e1e4e8',
+  borderRadius: '8px',
+  backgroundColor: '#fafbfc',
+};
+
+const uploadStatusStyle = {
+  fontSize: '0.85rem',
+  color: '#007bff',
+  marginTop: '0.5rem',
+  fontWeight: '500',
+};
+
+const successTextStyle = {
+  fontSize: '0.85rem',
+  color: '#28a745',
+  marginTop: '0.5rem',
+  fontWeight: '600',
+};
+
 const hintStyle = {
   fontSize: '0.85rem',
   color: '#6c757d',
@@ -253,6 +323,8 @@ const hintStyle = {
 const warningStyle = {
   color: '#dc3545',
   fontWeight: '600',
+  fontSize: '0.85rem',
+  marginTop: '0.5rem',
 };
 
 const buttonGroupStyle = {

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
 import { toast as toastify } from 'react-toastify'; 
-import toast from 'react-hot-toast'; // 🆕 For Lesson 4.3 real-time notifications
+import toast from 'react-hot-toast'; 
 import api from '../services/api';
 import socket from '../services/socket'; 
 
@@ -32,18 +32,14 @@ const Dashboard = () => {
     }
   }, []);
 
-  // EFFECT: Socket connection and Real-Time Event Listeners
   useEffect(() => {
-    // Establish connection
     socket.connect();
 
     socket.on('connect', () => {
       console.log('🔌 Socket connected:', socket.id);
     });
 
-    // 🆕 LISTEN for new post events from ANY user
     socket.on('newPost', (data) => {
-      // Trigger the react-hot-toast notification
       toast.success(`📢 New post: "${data.title}" by ${data.author}`, {
         duration: 6000,
         icon: '🚀',
@@ -53,8 +49,6 @@ const Dashboard = () => {
           color: '#fff',
         },
       });
-      
-      // Refresh the list automatically so the new post appears
       fetchPosts(currentPage);
     });
 
@@ -66,7 +60,6 @@ const Dashboard = () => {
       console.error('Socket connection error:', error.message);
     });
 
-    // CLEANUP: Remove listeners to prevent memory leaks and duplicate toasts
     return () => {
       socket.off('connect');
       socket.off('newPost');
@@ -76,7 +69,6 @@ const Dashboard = () => {
     };
   }, [currentPage, fetchPosts]); 
 
-  // EFFECT: Fetch posts on page change
   useEffect(() => {
     fetchPosts(currentPage);
   }, [currentPage, fetchPosts]);
@@ -150,7 +142,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Error Message */}
         {error && (
           <div style={errorStyle}>
             <span style={errorIconStyle}>⚠️</span>
@@ -176,6 +167,18 @@ const Dashboard = () => {
               <div style={postsGridStyle}>
                 {posts.map((post) => (
                   <div key={post._id} style={postCardStyle}>
+                    
+                    {/* 🆕 ADDED: Conditional Post Image */}
+                    {post.coverImage && (
+                      <div style={imageContainerStyle}>
+                        <img 
+                          src={post.coverImage} 
+                          alt={`Cover for ${post.title}`} 
+                          style={postImageStyle} 
+                        />
+                      </div>
+                    )}
+
                     <div style={postHeaderStyle}>
                       <span style={getCategoryBadgeStyle(post.category)}>
                         {post.category}
@@ -254,54 +257,33 @@ const Dashboard = () => {
 };
 
 // --- STYLES ---
-const actionsContainerStyle = {
-  display: 'flex',
-  gap: '0.5rem',
+
+// 🆕 NEW IMAGE STYLES
+const imageContainerStyle = {
+  width: 'calc(100% + 3rem)', // Expands to edges (compensates for card padding)
+  margin: '-1.5rem -1.5rem 1.25rem -1.5rem', // Pulls image to top and sides
+  height: '180px',
+  overflow: 'hidden',
+  borderRadius: '10px 10px 0 0',
 };
 
-const editButtonStyle = {
-  backgroundColor: '#e7f1ff',
-  color: '#007bff',
-  border: '1px solid #007bff',
-  padding: '0.4rem 0.8rem',
-  borderRadius: '6px',
-  fontSize: '0.85rem',
-  fontWeight: '600',
-  cursor: 'pointer',
+const postImageStyle = {
+  width: '100%',
+  height: '100%',
+  objectFit: 'cover',
+  display: 'block',
 };
 
-const deleteButtonStyle = {
-  backgroundColor: '#fff1f1',
-  color: '#dc3545',
-  border: '1px solid #dc3545',
-  padding: '0.4rem 0.8rem',
-  borderRadius: '6px',
-  fontSize: '0.85rem',
-  fontWeight: '600',
-  cursor: 'pointer',
-};
-
-const getCategoryBadgeStyle = (category) => ({
-  ...categoryBadgeStyle,
-  backgroundColor: getCategoryColor(category),
-});
-
+// EXISTING STYLES
+const actionsContainerStyle = { display: 'flex', gap: '0.5rem' };
+const editButtonStyle = { backgroundColor: '#e7f1ff', color: '#007bff', border: '1px solid #007bff', padding: '0.4rem 0.8rem', borderRadius: '6px', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer' };
+const deleteButtonStyle = { backgroundColor: '#fff1f1', color: '#dc3545', border: '1px solid #dc3545', padding: '0.4rem 0.8rem', borderRadius: '6px', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer' };
+const getCategoryBadgeStyle = (category) => ({ ...categoryBadgeStyle, backgroundColor: getCategoryColor(category) });
 const getCategoryColor = (category) => {
-  const colors = {
-    'Technology': '#e3f2fd',
-    'Lifestyle': '#f3e5f5',
-    'Travel': '#e8f5e9',
-    'Food': '#fff3e0'
-  };
+  const colors = { 'Technology': '#e3f2fd', 'Lifestyle': '#f3e5f5', 'Travel': '#e8f5e9', 'Food': '#fff3e0' };
   return colors[category] || '#f5f5f5';
 };
-
-const getStatusBadgeStyle = (status) => ({
-  ...statusBadgeStyle,
-  backgroundColor: status === 'published' ? '#d4edda' : '#fff3cd',
-  color: status === 'published' ? '#155724' : '#856404',
-});
-
+const getStatusBadgeStyle = (status) => ({ ...statusBadgeStyle, backgroundColor: status === 'published' ? '#d4edda' : '#fff3cd', color: status === 'published' ? '#155724' : '#856404' });
 const containerStyle = { minHeight: '100vh', backgroundColor: '#f8f9fa', padding: '2rem 1rem' };
 const contentWrapperStyle = { maxWidth: '1200px', margin: '0 auto' };
 const headerStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' };
@@ -318,7 +300,7 @@ const statLabelStyle = { fontSize: '0.875rem', color: '#6c757d', marginTop: '0.2
 const sectionTitleStyle = { fontSize: '1.5rem', fontWeight: '600', color: '#1a1a1a', marginBottom: '1.5rem' };
 const postsContainerStyle = { backgroundColor: 'white', padding: '2rem', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)' };
 const postsGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '2rem' };
-const postCardStyle = { backgroundColor: '#fafafa', border: '1px solid #e9ecef', borderRadius: '10px', padding: '1.5rem', transition: 'all 0.3s ease' };
+const postCardStyle = { backgroundColor: '#fafafa', border: '1px solid #e9ecef', borderRadius: '10px', padding: '1.5rem', transition: 'all 0.3s ease', overflow: 'hidden' };
 const postHeaderStyle = { display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' };
 const categoryBadgeStyle = { padding: '0.25rem 0.75rem', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '600', color: '#495057' };
 const statusBadgeStyle = { padding: '0.25rem 0.75rem', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '600' };
