@@ -8,9 +8,11 @@ import connectDB from './config/database.js';
 import userRoutes from './routes/userRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import postRoutesFactory from './routes/postRoutes.js';
-// 1. Import the new upload routes
 import uploadRoutes from './routes/upload.js';
 import errorHandler from './middleware/errorMiddleware.js';
+
+// 🚀 1. Import the timing middleware
+import timingMiddleware from './middleware/timing.js';
 
 dotenv.config();
 connectDB();
@@ -25,6 +27,10 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+
+// 🚀 2. Register timing middleware BEFORE routes
+// This allows us to measure how long each request takes
+app.use(timingMiddleware);
 
 // Initialize Socket.io
 const io = new Server(httpServer, {
@@ -59,7 +65,6 @@ io.on('connection', (socket) => {
 app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutesFactory(io));
-// 2. Register the upload route
 app.use('/api/upload', uploadRoutes); 
 
 // Health check

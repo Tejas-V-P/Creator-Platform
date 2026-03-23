@@ -1,11 +1,8 @@
 import Post from '../models/Post.js';
 
-// @desc    Create new post
-// @route   POST /api/posts
-// @access  Private
+// @desc    Create new post (No major change needed here, we need the full Mongoose doc to save)
 export const createPost = async (req, res, io, next) => {
   try {
-    // UPDATED: Added coverImage to destructuring
     const { title, content, category, status, coverImage } = req.body;
 
     if (!title || !content) {
@@ -14,17 +11,15 @@ export const createPost = async (req, res, io, next) => {
       throw error;
     }
 
-    // UPDATED: Added coverImage to the Post.create call
     const post = await Post.create({
       title,
       content,
       category,
       status,
-      coverImage: coverImage || null, // Stores the Cloudinary URL
+      coverImage: coverImage || null,
       author: req.user._id
     });
 
-    // Emit real-time event to all connected clients
     if (io) {
       io.emit('newPost', { title: post.title, author: req.user.name });
     }
@@ -41,29 +36,33 @@ export const createPost = async (req, res, io, next) => {
 
 // @desc    Get posts with pagination
 // @route   GET /api/posts?page=1&limit=10
-// @access  Private
 export const getPosts = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const posts = await Post.find({ author: req.user._id })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .populate('author', 'name email');
+    // 🚀 OPTIMIZATION: Run query and count in parallel using Promise.all
+    const [posts, total] = await Promise.all([
+      Post.find({ author: req.user._id })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .select('title content category status coverImage author createdAt') // 🚀 Field selection
+        .populate('author', 'name email') // 🚀 Optimized populate
+        .lean(), // 🚀 Returns plain JS objects (faster)
+      Post.countDocuments({ author: req.user._id })
+    ]);
 
-    const total = await Post.countDocuments({ author: req.user._id });
     const totalPages = Math.ceil(total / limit);
 
     res.status(200).json({
       success: true,
       data: posts,
       pagination: {
+        total,
         page,
         limit,
-        total,
         totalPages,
         hasNextPage: page < totalPages,
         hasPrevPage: page > 1
@@ -75,11 +74,13 @@ export const getPosts = async (req, res, next) => {
 };
 
 // @desc    Get single post by ID
-// @route   GET /api/posts/:id
-// @access  Private
 export const getPostById = async (req, res, next) => {
   try {
-    const post = await Post.findById(req.params.id);
+    // 🚀 OPTIMIZATION: Added .lean() and specific field selection
+    const post = await Post.findById(req.params.id)
+      .select('-__v') 
+      .populate('author', 'name email')
+      .lean();
 
     if (!post) {
       const error = new Error('Post not found');
@@ -87,7 +88,8 @@ export const getPostById = async (req, res, next) => {
       throw error;
     }
 
-    if (post.author.toString() !== req.user._id.toString()) {
+    // Since we used .lean(), post.author is now just a plain Object/ID
+    if (post.author._id.toString() !== req.user._id.toString()) {
       const error = new Error('Not authorized');
       error.status = 403;
       throw error;
@@ -99,9 +101,7 @@ export const getPostById = async (req, res, next) => {
   }
 };
 
-// @desc    Update post
-// @route   PUT /api/posts/:id
-// @access  Private
+// @desc    Update post (No .lean() here because we need the .save() method)
 export const updatePost = async (req, res, next) => {
   try {
     let post = await Post.findById(req.params.id);
@@ -118,7 +118,6 @@ export const updatePost = async (req, res, next) => {
       throw error;
     }
 
-    // UPDATED: Added coverImage to destructuring and update logic
     const { title, content, category, status, coverImage } = req.body;
     
     post.title = title || post.title;
@@ -126,8 +125,6 @@ export const updatePost = async (req, res, next) => {
     post.category = category || post.category;
     post.status = status || post.status;
     
-    // If a new coverImage is provided in the body, update it.
-    // If coverImage is explicitly null, it will remove the image reference.
     if (coverImage !== undefined) {
       post.coverImage = coverImage;
     }
@@ -141,8 +138,6 @@ export const updatePost = async (req, res, next) => {
 };
 
 // @desc    Delete post
-// @route   DELETE /api/posts/:id
-// @access  Private
 export const deletePost = async (req, res, next) => {
   try {
     const post = await Post.findById(req.params.id);

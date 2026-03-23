@@ -1,5 +1,6 @@
 import express from 'express';
 import { protect } from '../middleware/auth.js';
+import timingMiddleware from '../middleware/timing.js'; // ⏱️ New import
 import { 
   createPost, 
   getPosts, 
@@ -10,14 +11,14 @@ import {
 
 const router = express.Router();
 
-// We export a function that takes 'io' as an argument
 export default (io) => {
-  
+  // Apply timing middleware to all post routes to monitor performance
+  router.use(timingMiddleware);
+
   // Routes for base collection
   router.route('/')
-    // Pass 'io' into the controller using a wrapper function
     .post(protect, (req, res, next) => createPost(req, res, io, next))
-    .get(protect, getPosts);
+    .get(protect, getPosts); // 🚀 Optimization happens inside getPosts controller
 
   // Routes for individual posts
   router.route('/:id')
