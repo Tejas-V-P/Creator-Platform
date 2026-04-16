@@ -1,0 +1,15 @@
+import { io } from 'socket.io-client';
+
+// Server URL — uses current origin in production (nginx proxies /socket.io/ to server)
+const SOCKET_URL = import.meta.env.VITE_API_URL || window.location.origin;
+
+// Create socket instance (not connected yet)
+const socket = io(SOCKET_URL, {
+  autoConnect: false,   // Don't connect automatically
+  withCredentials: true,
+  auth: {
+    token: localStorage.getItem("token")
+  }
+});
+
+export default socket;
